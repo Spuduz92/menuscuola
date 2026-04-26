@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
 import '../../../app/theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/supabase/supabase_client.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -35,21 +37,143 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _emailCtrl.text.trim(),
             _passCtrl.text,
           );
-    } catch (e) {
+    } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        // Messaggio specifico per email non verificata
+        final msg = e.message.contains('Email not confirmed')
+            ? 'Controlla la tua email e clicca il link di conferma prima di accedere.'
+            : e.message;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showForgotPassword(BuildContext context) {
+    final emailCtrl = TextEditingController(text: _emailCtrl.text);
+    bool isSending = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.warmWhite,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                Text('Password dimenticata',
+                    style: Theme.of(ctx).textTheme.displaySmall),
+                const SizedBox(height: 8),
+                Text(
+                  'Inserisci la tua email e ti manderemo un link per reimpostare la password.',
+                  style: Theme.of(ctx)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: 24),
+
+                TextFormField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.mail_outline_rounded,
+                        color: AppColors.muted),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: isSending
+                        ? null
+                        : () async {
+                            if (emailCtrl.text.trim().isEmpty) return;
+                            setModalState(() => isSending = true);
+                            try {
+                              await supabase.auth.resetPasswordForEmail(
+                                emailCtrl.text.trim(),
+                                redirectTo: 'menuscuola://reset-password',
+                              );
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                        '✅ Email inviata! Controlla la tua casella.'),
+                                    backgroundColor: AppColors.sage,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Errore: $e'),
+                                    backgroundColor: AppColors.error,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } finally {
+                              setModalState(() => isSending = false);
+                            }
+                          },
+                    child: isSending
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Invia link di reset'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -156,6 +280,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         .animate()
                         .fadeIn(delay: 200.ms, duration: 500.ms)
                         .slideY(begin: 0.1, end: 0),
+
+                    // Dopo il campo password, prima del bottone login
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => _showForgotPassword(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.muted,
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Text(
+                          'Password dimenticata?',
+                          style: GoogleFonts.dmSans(
+                              fontSize: 13, color: AppColors.muted),
+                        ),
+                      ),
+                    ).animate().fadeIn(delay: 230.ms),
 
                     const SizedBox(height: 32),
 

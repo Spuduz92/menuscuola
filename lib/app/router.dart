@@ -14,6 +14,7 @@ import '../core/models/models.dart';
 import '../features/home/screens/user_profile_screen.dart';
 import '../features/admin/admin_dashboard_screen.dart';
 import '../features/school_dashboard/screens/cyclic_menu_editor_screen.dart';
+import '../features/auth/screens/reset_password_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -74,6 +75,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin',
         name: 'admin',
         builder: (ctx, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        builder: (ctx, state) => const ResetPasswordScreen(),
       ),
 
       // ─── USER SHELL (bottom nav) ─────────────────────────────────────
