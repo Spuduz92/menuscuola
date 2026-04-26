@@ -58,7 +58,8 @@ class _RegisterSchoolScreenState extends ConsumerState<RegisterSchoolScreen> {
   }
 
   Future<void> _loadRegions() async {
-    final data = await supabase.from('regions').select().order('name');
+    final data =
+        await supabase.from('regions').select().order('name', ascending: true);
     setState(() {
       _regions = (data as List).map((e) => Region.fromJson(e)).toList();
     });
@@ -69,7 +70,7 @@ class _RegisterSchoolScreenState extends ConsumerState<RegisterSchoolScreen> {
         .from('provinces')
         .select()
         .eq('region_id', regionId)
-        .order('name');
+        .order('name', ascending: true);
     setState(() {
       _provinces = (data as List).map((e) => Province.fromJson(e)).toList();
       _selectedProvince = null;
@@ -83,7 +84,7 @@ class _RegisterSchoolScreenState extends ConsumerState<RegisterSchoolScreen> {
         .from('municipalities')
         .select()
         .eq('province_id', provinceId)
-        .order('name');
+        .order('name', ascending: true);
     setState(() {
       _municipalities =
           (data as List).map((e) => Municipality.fromJson(e)).toList();
